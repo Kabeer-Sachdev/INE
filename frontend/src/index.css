@@ -11,6 +11,7 @@ body {
   color: #f1f5f9;
   line-height: 1.5;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* Layout Containers */
@@ -485,6 +486,9 @@ body {
   color: #f87171;
   font-family: monospace;
   font-size: 0.8rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-width: 300px;
 }
 
 .empty-state, .state-placeholder {

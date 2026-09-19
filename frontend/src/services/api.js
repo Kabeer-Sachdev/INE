@@ -1,4 +1,15 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() && !envUrl.includes('vercel.app')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  if (import.meta.env.DEV) {
+    return 'http://localhost:5000';
+  }
+  return 'https://ine-price-tracker-api-cubq.onrender.com';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;

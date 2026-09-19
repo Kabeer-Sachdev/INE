@@ -99,7 +99,8 @@ async function getPriceHistory(productId) {
     .from('price_history')
     .select('*')
     .eq('product_id', productId)
-    .order('scraped_at', { ascending: false });
+    .order('scraped_at', { ascending: false })
+    .order('id', { ascending: false });
 
   if (error) {
     throw new Error(`Failed to fetch price history: ${error.message}`);
@@ -121,7 +122,8 @@ async function getScrapeLogs(productId) {
     .from('scrape_logs')
     .select('*')
     .eq('product_id', productId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .order('attempt_number', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to fetch scrape logs: ${error.message}`);

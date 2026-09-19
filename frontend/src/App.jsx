@@ -1,0 +1,162 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { api } from './services/api';
+import { Navbar } from './components/Navbar';
+import { SearchProducts } from './components/SearchProducts';
+import { TrackedProducts } from './components/TrackedProducts';
+import { ProductDetails } from './components/ProductDetails';
+import { PriceHistoryChart } from './components/PriceHistoryChart';
+import { HistoryTable } from './components/HistoryTable';
+import { ScrapeLogs } from './components/ScrapeLogs';
+import './index.css';
+
+export default function App() {
+  const [trackedProducts, setTrackedProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [logs, setLogs] = useState([]);
+
+  const [loadingTracked, setLoadingTracked] = useState(true);
+  const [trackedError, setTrackedError] = useState(null);
+
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState(null);
+
+  const [scraping, setScraping] = useState(false);
+  const [scrapeError, setScrapeError] = useState(null);
+  const [scrapeSuccess, setScrapeSuccess] = useState(null);
+
+  // 1. Load Tracked Products on mount
+  const loadTrackedProducts = useCallback(async (selectId = null) => {
+    setLoadingTracked(true);
+    setTrackedError(null);
+    try {
+      const data = await api.getTrackedProducts();
+      const list = data.products || [];
+      setTrackedProducts(list);
+
+      // Auto-select product if specified or if list exists and none selected
+      if (list.length > 0) {
+        const target = selectId ? list.find(p => p.id === selectId) : list[0];
+        if (target) {
+          handleSelectProduct(target);
+        }
+      }
+    } catch (err) {
+      setTrackedError(err.message || 'Failed to load tracked products.');
+    } finally {
+      setLoadingTracked(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTrackedProducts();
+  }, [loadTrackedProducts]);
+
+  // 2. Select Product & Load Details (History + Logs)
+  const handleSelectProduct = async (product) => {
+    if (!product) return;
+    setSelectedProduct(product);
+    setLoadingDetails(true);
+    setDetailsError(null);
+    setScrapeError(null);
+    setScrapeSuccess(null);
+
+    try {
+      const [historyRes, logsRes] = await Promise.all([
+        api.getProductHistory(product.id).catch(() => ({ history: [] })),
+        api.getScrapeLogs(product.id).catch(() => ({ logs: [] }))
+      ]);
+
+      setHistory(historyRes.history || []);
+      setLogs(logsRes.logs || []);
+    } catch (err) {
+      setDetailsError(err.message || 'Failed to load details for product.');
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  // 3. Trigger Manual Scrape
+  const handleManualScrape = async (productId) => {
+    if (!productId || scraping) return;
+
+    setScraping(true);
+    setScrapeError(null);
+    setScrapeSuccess(null);
+
+    try {
+      const res = await api.manualScrape(productId);
+      setScrapeSuccess(`Scrape completed! Price: ₹${res.data.price} (${res.data.stock})`);
+      
+      // Refresh history & logs
+      if (selectedProduct) {
+        const [historyRes, logsRes] = await Promise.all([
+          api.getProductHistory(selectedProduct.id),
+          api.getScrapeLogs(selectedProduct.id)
+        ]);
+        setHistory(historyRes.history || []);
+        setLogs(logsRes.logs || []);
+      }
+    } catch (err) {
+      setScrapeError(err.message || 'Manual scrape failed after retries.');
+      
+      // Refresh logs to show failure log
+      if (selectedProduct) {
+        const logsRes = await api.getScrapeLogs(selectedProduct.id).catch(() => ({ logs: [] }));
+        setLogs(logsRes.logs || []);
+      }
+    } finally {
+      setScraping(false);
+    }
+  };
+
+  const latestHistoryRecord = history.length > 0 ? history[0] : null;
+
+  return (
+    <div className="app-layout">
+      <Navbar activeCount={trackedProducts.length} />
+
+      <main className="dashboard-container">
+        {/* Top Search Section */}
+        <SearchProducts onProductTracked={(newProd) => loadTrackedProducts(newProd.id)} />
+
+        {/* Main 2-Column Dashboard Body */}
+        <div className="dashboard-grid">
+          {/* Left Column: Tracked Products Sidebar */}
+          <aside className="sidebar-col">
+            <TrackedProducts
+              products={trackedProducts}
+              selectedId={selectedProduct?.id}
+              onSelectProduct={handleSelectProduct}
+              loading={loadingTracked}
+              error={trackedError}
+            />
+          </aside>
+
+          {/* Right Column: Selected Product Details & Telemetry */}
+          <section className="main-content-col">
+            <ProductDetails
+              product={selectedProduct}
+              latestHistory={latestHistoryRecord}
+              onScrapeNow={handleManualScrape}
+              scraping={scraping}
+              scrapeError={scrapeError}
+              scrapeSuccess={scrapeSuccess}
+            />
+
+            {selectedProduct && (
+              <>
+                <PriceHistoryChart history={history} />
+                
+                <div className="tables-grid">
+                  <HistoryTable history={history} loading={loadingDetails} error={detailsError} />
+                  <ScrapeLogs logs={logs} loading={loadingDetails} error={detailsError} />
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}

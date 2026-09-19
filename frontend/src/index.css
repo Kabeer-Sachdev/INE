@@ -1,0 +1,495 @@
+/* Clean Modern Dashboard Styling for INE Product Price Tracker */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #0b0f19;
+  color: #f1f5f9;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Layout Containers */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.navbar {
+  background-color: #151d30;
+  border-bottom: 1px solid #1e293b;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+}
+
+.navbar-brand h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.status-badge {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.dashboard-container {
+  max-width: 1280px;
+  width: 95%;
+  margin: 1.5rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Common Card Styling */
+.card {
+  background-color: #151d30;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card h2, .card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.badge-count {
+  background-color: #1e293b;
+  color: #38bdf8;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Form Controls */
+.search-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.input-field {
+  flex: 1;
+  background-color: #0b0f19;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #38bdf8;
+}
+
+.btn {
+  border: none;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #0284c7;
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0369a1;
+}
+
+.btn-secondary {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #475569;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+.btn-action {
+  background-color: #eab308;
+  color: #0f172a;
+}
+
+.btn-action:hover:not(:disabled) {
+  background-color: #ca8a04;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+/* Alerts */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.alert-success {
+  background-color: rgba(34, 197, 94, 0.15);
+  border: 1px solid #22c55e;
+  color: #4ade80;
+}
+
+.alert-error {
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #f87171;
+}
+
+.alert-warn {
+  background-color: rgba(234, 179, 8, 0.15);
+  border: 1px solid #eab308;
+  color: #facc15;
+}
+
+/* Search Results Grid */
+.search-results-list {
+  margin-top: 1.25rem;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.search-result-item {
+  background-color: #0b0f19;
+  border: 1px solid #1e293b;
+  padding: 0.85rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #f1f5f9;
+}
+
+.product-id {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* Tracked List Sidebar */
+.tracked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.tracked-item {
+  background-color: #0b0f19;
+  border: 1px solid #1e293b;
+  padding: 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s ease;
+}
+
+.tracked-item:hover {
+  border-color: #38bdf8;
+}
+
+.tracked-item.selected {
+  border-color: #38bdf8;
+  background-color: #111b2e;
+}
+
+.tracked-title {
+  font-size: 0.9rem;
+  color: #f1f5f9;
+}
+
+.tracked-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.meta-tag {
+  color: #64748b;
+}
+
+.status-active {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+/* Details Section */
+.main-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.product-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.store-link {
+  color: #38bdf8;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.store-link:hover {
+  text-decoration: underline;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-box {
+  background-color: #0b0f19;
+  border: 1px solid #1e293b;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.stat-value.price {
+  color: #4ade80;
+}
+
+.stat-value.stock {
+  color: #38bdf8;
+}
+
+.stat-value.time {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+/* SVG Chart */
+.chart-container {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.svg-chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-meta {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Data Tables */
+.tables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1000px) {
+  .tables-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table-responsive {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.data-table th, .data-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #1e293b;
+}
+
+.data-table th {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.time-cell {
+  color: #cbd5e1;
+}
+
+.price-cell {
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.stock-tag {
+  background-color: #0b0f19;
+  border: 1px solid #334155;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.status-badge-lg {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-badge-lg.success {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid #22c55e;
+}
+
+.status-badge-lg.retrying {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1px solid #eab308;
+}
+
+.status-badge-lg.failed {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid #ef4444;
+}
+
+.error-cell {
+  color: #f87171;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.empty-state, .state-placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}

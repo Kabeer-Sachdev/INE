@@ -22,24 +22,32 @@ function validateEnvironment() {
 }
 validateEnvironment();
 
-// Configure CORS to support local development and deployed origins
+// Configure CORS to support local development and deployed Vercel production origins
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
+  'https://ine-gules.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow non-browser requests (like curl, scheduler requests, or same-origin)
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    return callback(new Error('CORS policy violation: Origin not allowed.'));
+    return callback(null, false);
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Parse incoming JSON payloads
 app.use(express.json());

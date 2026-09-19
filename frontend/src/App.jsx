@@ -25,35 +25,8 @@ export default function App() {
   const [scrapeError, setScrapeError] = useState(null);
   const [scrapeSuccess, setScrapeSuccess] = useState(null);
 
-  // 1. Load Tracked Products on mount
-  const loadTrackedProducts = useCallback(async (selectId = null) => {
-    setLoadingTracked(true);
-    setTrackedError(null);
-    try {
-      const data = await api.getTrackedProducts();
-      const list = data.products || [];
-      setTrackedProducts(list);
-
-      // Auto-select product if specified or if list exists and none selected
-      if (list.length > 0) {
-        const target = selectId ? list.find(p => p.id === selectId) : list[0];
-        if (target) {
-          handleSelectProduct(target);
-        }
-      }
-    } catch (err) {
-      setTrackedError(err.message || 'Failed to load tracked products.');
-    } finally {
-      setLoadingTracked(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadTrackedProducts();
-  }, [loadTrackedProducts]);
-
-  // 2. Select Product & Load Details (History + Logs)
-  const handleSelectProduct = async (product) => {
+  // 1. Select Product & Load Details (History + Logs)
+  const handleSelectProduct = useCallback(async (product) => {
     if (!product) return;
     setSelectedProduct(product);
     setLoadingDetails(true);
@@ -74,7 +47,42 @@ export default function App() {
     } finally {
       setLoadingDetails(false);
     }
-  };
+  }, []);
+
+  // 2. Load Tracked Products on mount or after tracking a new product
+  const loadTrackedProducts = useCallback(async (selectId = null) => {
+    setLoadingTracked(true);
+    setTrackedError(null);
+    try {
+      const data = await api.getTrackedProducts();
+      const list = data.products || [];
+      setTrackedProducts(list);
+
+      if (list.length > 0) {
+        if (selectId) {
+          const target = list.find(p => p.id === selectId);
+          if (target) handleSelectProduct(target);
+        } else {
+          // Auto-select first item on initial load if none selected
+          setSelectedProduct(current => {
+            if (!current) {
+              handleSelectProduct(list[0]);
+              return list[0];
+            }
+            return current;
+          });
+        }
+      }
+    } catch (err) {
+      setTrackedError(err.message || 'Failed to load tracked products.');
+    } finally {
+      setLoadingTracked(false);
+    }
+  }, [handleSelectProduct]);
+
+  useEffect(() => {
+    loadTrackedProducts();
+  }, [loadTrackedProducts]);
 
   // 3. Trigger Manual Scrape
   const handleManualScrape = async (productId) => {

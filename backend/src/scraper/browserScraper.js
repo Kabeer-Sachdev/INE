@@ -15,7 +15,12 @@ async function fetchRawProductData(productUrl, options = {}) {
     // 1. Launch Playwright Chromium Instance
     browser = await chromium.launch({
       headless: isHeadless,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ]
     });
 
     const context = await browser.newContext({

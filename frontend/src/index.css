@@ -417,6 +417,8 @@ body {
 
 .table-responsive {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 360px;
   margin-top: 0.75rem;
 }
 
@@ -433,10 +435,15 @@ body {
 }
 
 .data-table th {
+  position: sticky;
+  top: 0;
+  background-color: #151d30;
+  z-index: 5;
   color: #64748b;
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
+  box-shadow: 0 1px 0 #1e293b;
 }
 
 .time-cell {

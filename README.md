@@ -9,30 +9,118 @@ An end-to-end, production-grade automated Product Price Tracker and Web Scraper 
 * **Live Web Dashboard (Vercel)**: [https://ine-gules.vercel.app/](https://ine-gules.vercel.app/)
 * **Live Backend API (Render)**: [https://ine-price-tracker-api-cubq.onrender.com](https://ine-price-tracker-api-cubq.onrender.com)
 * **GitHub Repository**: [https://github.com/Kabeer-Sachdev/INE](https://github.com/Kabeer-Sachdev/INE)
+* **Detailed Design Note**: [`DESIGN_NOTE.md`](file:///c:/Users/sachd/OneDrive/Desktop/INE/precisely-price-tracker/DESIGN_NOTE.md)
 
 ---
 
-## 🌟 Key Architecture & Engineering Features
+## 📝 Short Design Note & Engineering Trade-offs
 
-### 1. Robust Web Scraper (Playwright Chromium)
-* **Dynamic DOM & JS Execution**: Utilizes Playwright to automate full headless browser sessions, enabling rendering of dynamic client-side storefront content.
-* **Hover & Hidden Element Handling**: Handles interactive storefront elements (e.g. price reveal hover actions, reveal buttons) dynamically.
-* **Smart Selectors**: Multi-layered fallback selector strategy (`.product-price`, `[data-price]`, text pattern regex matching) ensuring scraper resilience against minor layout updates.
+### 1. Scraping Reliability
+* **Full Browser Automation (Playwright)**: Storefront prices on `demo.inelabteamdev.com` are rendered dynamically via client-side JS and hidden behind interactive hover targets. Static parsers (Axios/Cheerio) fail. Playwright automates real Chromium browser sessions to trigger hover actions and extract rendered price text.
+* **3-Attempt Exponential Backoff**: Retries failed attempts up to 3 times (with 1s and 2s backoff delays).
+* **Data Integrity Protection**: Strict validation prevents failed scrapes from writing fake `$0` or `null` values into `price_history`, keeping price trend charts clean.
+* **Audit Telemetry**: Every attempt (`retrying`, `failed`, or `success`) is logged in `scrape_logs` with duration and error classification.
 
-### 2. Failure Isolation & Retry Policy
-* **3-Attempt Exponential Backoff**: Retries failed scrape attempts up to 3 times (with 1s and 2s delays).
-* **Detailed Error Classification**: Distinguishes network timeouts, HTTP error statuses, element target missing errors, and parser integrity violations.
-* **Complete Audit Telemetry**: Logs every individual attempt (`retrying`, `failed`, or `success`) into the `scrape_logs` table with exact duration (ms) and error messages.
-* **Data Integrity Protection**: Enforces strict validation: **failed scrapes NEVER record zero or null prices into `price_history`**, preserving historical chart accuracy.
+### 2. Architectural Trade-offs
+* **Headless Playwright vs Static Cheerio**: Chosen Playwright despite higher RAM usage (~150MB per session) because storefront prices require JS execution and hover triggers.
+* **In-Memory Lock vs Redis Lock**: Implemented an in-memory `isScrapeRunning` lock for cron protection, providing zero-cost concurrency safety for single-instance backend deployments.
+* **Client-Side Telemetry Pagination**: History and audit tables use 5-item client-side pagination to render instant SVG trend charts without API multi-roundtrip latency.
 
-### 3. Automated Scheduling & Overlap Protection
-* **External Cron Integration**: Configured with `cron-job.org` calling `POST /api/scheduler/scrape` with `Authorization: Bearer <SCHEDULER_SECRET>`.
-* **In-Memory Concurrency Lock**: Prevents duplicate overlapping scraper execution if a previous batch scrape is still active.
+### 3. AI Initial Flaws & Manual Corrections
+* **Flaw 1 (Naive Parser)**: Initial AI prompts suggested Cheerio/Axios, which failed on hidden hover prices. **Fix**: Wrote custom Playwright automation with explicit hover selectors.
+* **Flaw 2 (Corrupted History)**: Default AI error handling wrote `$0.00` on failure. **Fix**: Added validator guard rails blocking corrupt insertions into `price_history`.
+* **Flaw 3 (Render Playwright Path Crash)**: AI deployment scripts crashed on Render due to ephemeral cache loss. **Fix**: Set `PLAYWRIGHT_BROWSERS_PATH=0` to force binary persistence inside `node_modules`.
 
-### 4. Modern Dashboard UI (React + Vite)
-* **Real-time Visualization**: SVG Price Trend Charts, Search & Track interface, and Live Status Telemetry.
-* **Scroll & Page Management**: Clean 5-item client-side pagination for Price History and Audit Logs with sequential attempt ordering.
-* **Responsive Layout**: Sticky headers, dark-mode styling, and touch-ready controls.
+*(See [`DESIGN_NOTE.md`](file:///c:/Users/sachd/OneDrive/Desktop/INE/precisely-price-tracker/DESIGN_NOTE.md) for full breakdown).*
+
+---
+
+## 🔐 Required Environment Variables
+
+### Backend (`backend/.env`)
+
+```env
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# Database Connection (Supabase PostgreSQL)
+SUPABASE_URL=https://<your-supabase-project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<your-supabase-service-role-key>
+
+# Scheduler Security Key (Header: Authorization: Bearer <SCHEDULER_SECRET>)
+SCHEDULER_SECRET=dev_scheduler_secret_key_123
+
+# CORS Whitelist (Comma-separated allowed origins)
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,https://ine-gules.vercel.app
+```
+
+### Frontend (`frontend/.env`)
+
+```env
+# API Backend Base URL (Vite environment variable)
+VITE_API_URL=http://localhost:5000
+```
+
+---
+
+## ⏰ Scraping Schedule & Cron Configuration
+
+Automated recurring scraping is executed via an external HTTP webhook (`cron-job.org`):
+
+* **Endpoint**: `POST https://ine-price-tracker-api-cubq.onrender.com/api/scheduler/scrape`
+* **Scraping Schedule**: **Every 6 hours** (`0 */6 * * *`)
+* **Header Authorization**: `Authorization: Bearer <SCHEDULER_SECRET>`
+* **Concurrency Locking**: If a scrape batch is already running when a cron request hits, the backend responds with `409 Conflict: Batch scrape already in progress`, preventing scraper overlap.
+
+---
+
+## 🚀 Setup & Local Development Instructions
+
+### Prerequisites
+* **Node.js**: v18+
+* **npm**: v9+
+
+### 1. Backend Setup
+
+```bash
+cd backend
+npm install
+```
+
+Create `backend/.env` using the template above, then start the server:
+
+```bash
+npm run dev
+```
+
+### 2. Frontend Setup
+
+In a new terminal:
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env` using the template above, then start Vite:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173` in your browser.
+
+---
+
+## 🎬 Running Headed Scraper Demo (Screen Recording)
+
+To watch Playwright launch a visible browser window, navigate, hover over price elements, and scrape data live on your screen:
+
+```bash
+cd backend
+npm run scrape:demo-headed
+```
 
 ---
 
@@ -61,95 +149,17 @@ An end-to-end, production-grade automated Product Price Tracker and Web Scraper 
 
 ---
 
-## 🛠️ Tech Stack
-
-* **Backend**: Node.js, Express.js, Playwright (Chromium)
-* **Database**: Supabase PostgreSQL
-* **Frontend**: React 18, Vite, Vanilla CSS
-* **Scheduler**: cron-job.org (HTTP Webhooks)
-* **Hosting**: Render (Backend), Vercel (Frontend)
-
----
-
-## 🚀 Local Setup & Development Guide
-
-### Prerequisites
-* **Node.js**: v18+ 
-* **npm**: v9+
-
-### 1. Backend Setup
-
-```bash
-cd backend
-npm install
-```
-
-Create a `.env` file inside `backend/` based on `.env.example`:
-
-```env
-PORT=5000
-NODE_ENV=development
-SUPABASE_URL=https://<your-supabase-project>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<your-supabase-service-role-key>
-SCHEDULER_SECRET=dev_scheduler_secret_key_123
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
-```
-
-Start the backend server:
-
-```bash
-npm run dev
-```
-
-### 2. Frontend Setup
-
-In a new terminal:
-
-```bash
-cd frontend
-npm install
-```
-
-Create a `.env` file inside `frontend/`:
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-Start Vite dev server:
-
-```bash
-npm run dev
-```
-
-Open `http://localhost:5173` in your browser.
-
----
-
-## 🎬 Running Headed Scraper Demo (Screen Recording)
-
-To watch the Playwright browser automatically launch, navigate, hover to reveal prices, and scrape the INE store live on your screen:
-
-```bash
-cd backend
-npm run scrape:demo-headed
-```
-
-This runs `demoHeadedScraper.js` with `headless: false` and slow-motion execution (`slowMo: 1000`), perfect for video demonstrations and debugging.
-
----
-
 ## 📚 API Endpoint Overview
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/health` | Service health status check | No |
-| `GET` | `/api/products/search?q=:query` | Search INE catalog by keyword | No |
+| `GET` | `/api/health` | Service health check | No |
+| `GET` | `/api/products/search?q=:query` | Search INE catalog | No |
 | `POST` | `/api/products/track` | Track a product URL | No |
-| `GET` | `/api/products` | List all active tracked products | No |
+| `GET` | `/api/products` | List all tracked products | No |
 | `GET` | `/api/products/:id/history` | Get price & stock history | No |
 | `GET` | `/api/products/:id/logs` | Get scrape attempt audit logs | No |
-| `POST` | `/api/products/:id/scrape` | Trigger manual immediate scrape | No |
+| `POST` | `/api/products/:id/scrape` | Trigger manual scrape | No |
 | `POST` | `/api/scheduler/scrape` | Cron automated batch scrape | Bearer Token |
 
 ---

@@ -33,9 +33,51 @@ function isAllowedProductUrl(urlStr) {
   }
 }
 
+let cachedCatalog = null;
+let lastCacheTime = 0;
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+
+/**
+ * Helper to fetch all catalog items across all pages from target storefront
+ */
+async function getFullCatalog() {
+  const now = Date.now();
+  if (cachedCatalog && (now - lastCacheTime < CACHE_TTL_MS)) {
+    return cachedCatalog;
+  }
+
+  try {
+    const page1 = await fetchHttpsJson('https://demo.inelabteamdev.com/api/catalog?page=1&pageSize=60');
+    const total = page1.total || 1000;
+    const totalPages = Math.ceil(total / 60);
+
+    const pagePromises = [];
+    for (let p = 2; p <= totalPages; p++) {
+      pagePromises.push(
+        fetchHttpsJson(`https://demo.inelabteamdev.com/api/catalog?page=${p}&pageSize=60`)
+          .then(res => res.items || [])
+          .catch(() => [])
+      );
+    }
+
+    const remainingPages = await Promise.all(pagePromises);
+    const allItems = [ ...(page1.items || []), ...remainingPages.flat() ];
+
+    if (allItems.length > 0) {
+      cachedCatalog = allItems;
+      lastCacheTime = now;
+    }
+
+    return allItems;
+  } catch (err) {
+    console.error('[CATALOG FETCH WARN]', err.message);
+    return cachedCatalog || [];
+  }
+}
+
 /**
  * 1. GET /api/products/search?q=<query>
- * Searches the INE mock storefront catalog by query term.
+ * Searches the INE mock storefront catalog across all products by query term, product ID, or product URL.
  */
 async function searchProducts(req, res) {
   const query = (req.query.q || '').trim();
@@ -51,17 +93,36 @@ async function searchProducts(req, res) {
   }
 
   try {
-    // Fetch product catalog from actual INE mock store REST API (discovered in Phase 3)
-    const catalogData = await fetchHttpsJson('https://demo.inelabteamdev.com/api/catalog?page=1&pageSize=100');
-    const items = catalogData.items || [];
-
+    const items = await getFullCatalog();
     const lowerQ = query.toLowerCase();
+
+    // Support searching directly by product URL e.g. https://demo.inelabteamdev.com/product/123
+    let urlIdMatch = null;
+    const urlMatch = query.match(/demo\.inelabteamdev\.com\/product\/(\d+)/i);
+    if (urlMatch) {
+      urlIdMatch = urlMatch[1];
+    }
+
     const matches = items.filter(item => {
+      const idStr = String(item.id || '');
       const name = (item.name || '').toLowerCase();
       const brand = (item.brand || '').toLowerCase();
       const category = (item.category || '').toLowerCase();
       const desc = (item.description || '').toLowerCase();
-      return name.includes(lowerQ) || brand.includes(lowerQ) || category.includes(lowerQ) || desc.includes(lowerQ);
+      const sku = (item.sku || '').toLowerCase();
+
+      if (urlIdMatch) {
+        return idStr === urlIdMatch;
+      }
+
+      return (
+        idStr === lowerQ ||
+        name.includes(lowerQ) ||
+        brand.includes(lowerQ) ||
+        category.includes(lowerQ) ||
+        desc.includes(lowerQ) ||
+        sku.includes(lowerQ)
+      );
     });
 
     const products = matches.map(item => ({

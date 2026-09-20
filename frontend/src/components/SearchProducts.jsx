@@ -20,8 +20,20 @@ export function SearchProducts({ onProductTracked }) {
 
     try {
       const data = await api.searchProducts(trimmed);
-      setResults(data.products || []);
-      if (data.products.length === 0) {
+      const rawProducts = data.products || [];
+
+      // Deduplicate on frontend by externalProductId
+      const uniqueList = [];
+      const seenIds = new Set();
+      for (const p of rawProducts) {
+        if (p && p.externalProductId && !seenIds.has(p.externalProductId)) {
+          seenIds.add(p.externalProductId);
+          uniqueList.push(p);
+        }
+      }
+
+      setResults(uniqueList);
+      if (uniqueList.length === 0) {
         setError('No products found matching your search term.');
       }
     } catch (err) {

@@ -38,7 +38,7 @@ let lastCacheTime = 0;
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 
 /**
- * Helper to fetch all catalog items across all pages from target storefront
+ * Helper to fetch all catalog items across all pages from target storefront, with strict ID deduplication
  */
 async function getFullCatalog() {
   const now = Date.now();
@@ -47,28 +47,37 @@ async function getFullCatalog() {
   }
 
   try {
-    const page1 = await fetchHttpsJson('https://demo.inelabteamdev.com/api/catalog?page=1&pageSize=60');
-    const total = page1.total || 1000;
-    const totalPages = Math.ceil(total / 60);
+    const page1 = await fetchHttpsJson('https://demo.inelabteamdev.com/api/catalog?page=1');
+    const totalPages = 50; // Scan all 50 catalog pages
 
     const pagePromises = [];
     for (let p = 2; p <= totalPages; p++) {
       pagePromises.push(
-        fetchHttpsJson(`https://demo.inelabteamdev.com/api/catalog?page=${p}&pageSize=60`)
+        fetchHttpsJson(`https://demo.inelabteamdev.com/api/catalog?page=${p}`)
           .then(res => res.items || [])
           .catch(() => [])
       );
     }
 
     const remainingPages = await Promise.all(pagePromises);
-    const allItems = [ ...(page1.items || []), ...remainingPages.flat() ];
+    const rawItems = [ ...(page1.items || []), ...remainingPages.flat() ];
 
-    if (allItems.length > 0) {
-      cachedCatalog = allItems;
+    // Deduplicate strictly by product ID
+    const uniqueMap = new Map();
+    for (const item of rawItems) {
+      if (item && item.id && !uniqueMap.has(String(item.id))) {
+        uniqueMap.set(String(item.id), item);
+      }
+    }
+
+    const uniqueItems = Array.from(uniqueMap.values());
+
+    if (uniqueItems.length > 0) {
+      cachedCatalog = uniqueItems;
       lastCacheTime = now;
     }
 
-    return allItems;
+    return uniqueItems;
   } catch (err) {
     console.error('[CATALOG FETCH WARN]', err.message);
     return cachedCatalog || [];
@@ -125,7 +134,15 @@ async function searchProducts(req, res) {
       );
     });
 
-    const products = matches.map(item => ({
+    // Deduplicate search results by product ID
+    const uniqueMatchesMap = new Map();
+    for (const item of matches) {
+      if (item && item.id && !uniqueMatchesMap.has(String(item.id))) {
+        uniqueMatchesMap.set(String(item.id), item);
+      }
+    }
+
+    const products = Array.from(uniqueMatchesMap.values()).map(item => ({
       name: item.name,
       url: `https://demo.inelabteamdev.com/product/${item.id}`,
       externalProductId: String(item.id)
